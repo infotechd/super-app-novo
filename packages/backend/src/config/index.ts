@@ -45,7 +45,5 @@ if (config.CORS_ORIGIN.length === 0) {
     ];
 }
 
-export const isDevelopment = () => config.NODE_ENV === 'development';
-export const isProduction = () => config.NODE_ENV === 'production';
 
 export default config;

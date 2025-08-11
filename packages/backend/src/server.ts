@@ -106,6 +106,6 @@ async function bootstrap() {
 }
 
 // Iniciar aplicação
-bootstrap();
+void bootstrap(); // Explicitly ignore promise
 
 export default app;
