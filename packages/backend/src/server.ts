@@ -16,9 +16,17 @@ app.use(helmet({
 }));
 app.use(compression());
 
-// CORS configurável
+// CORS configurável + Configuração específica para mobile
+const allowedOrigins: (string | RegExp)[] = [
+    ...(Array.isArray(config.CORS_ORIGIN) ? config.CORS_ORIGIN : [config.CORS_ORIGIN]),
+    'http://localhost:3000',     // Web
+    'http://localhost:8081',     // Expo Dev
+    /^exp:\/\/192\.168\.1\.\d+:8081$/,    // Expo LAN
+    /^http:\/\/192\.168\.1\.\d+:8081$/    // Expo LAN HTTP
+].filter(Boolean) as (string | RegExp)[];
+
 app.use(cors({
-    origin: config.CORS_ORIGIN,
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']

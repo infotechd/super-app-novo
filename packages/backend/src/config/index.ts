@@ -1,8 +1,19 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 
-// Carregar ..env.example PRIMEIRO
-dotenv.config({ path: path.join(__dirname, '../../..env.example') });
+// Carregar .env na raiz do backend, com fallback para .env.example
+const backendRoot = path.resolve(__dirname, '../../');
+const envPath = path.join(backendRoot, '.env');
+const examplePath = path.join(backendRoot, '.env.example');
+
+if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+} else if (fs.existsSync(examplePath)) {
+    dotenv.config({ path: examplePath });
+} else {
+    dotenv.config();
+}
 
 export interface AppConfig {
     NODE_ENV: string;

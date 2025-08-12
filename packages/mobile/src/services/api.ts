@@ -4,12 +4,17 @@ import { storageService } from '@/utils/storage';
 import { handleApiError } from '@/utils/helpers';
 import { ApiResponse } from '@/types';
 
+// Base URL resolvida por ambiente (evita hardcode)
+const API_BASE_URL = __DEV__
+  ? 'http://localhost:3000/api' // Desenvolvimento
+  : (process.env.EXPO_PUBLIC_API_URL || 'https://sua-api.com/api'); // Produção
+
 class ApiService {
   private api: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
-      baseURL: API_CONFIG.BASE_URL,
+      baseURL: API_BASE_URL,
       timeout: API_CONFIG.TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
