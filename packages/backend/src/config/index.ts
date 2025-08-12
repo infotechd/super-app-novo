@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Carregar .env.example PRIMEIRO
-dotenv.config({ path: path.join(__dirname, '../../.env.example') });
+// Carregar ..env.example PRIMEIRO
+dotenv.config({ path: path.join(__dirname, '../../..env.example') });
 
 export interface AppConfig {
     NODE_ENV: string;
