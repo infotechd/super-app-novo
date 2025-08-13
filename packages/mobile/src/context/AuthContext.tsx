@@ -1,129 +1,125 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { AuthContextType, User, LoginCredentials, RegisterData } from '@/types';
-import { authService } from '@/services/authService';
-import { storageService } from '@/utils/storage';
-import { useToast } from '@/hooks/useToast';
-import { MESSAGES } from '@/constants';
+// src/context/AuthContext.tsx
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { User, AuthResponse } from '../types/user';
+import { authService, LoginData, RegisterData } from '../services/authService';
+
+export interface AuthContextType {
+    user: User | null;
+    token: string | null;
+    isLoading: boolean;
+    isAuthenticated: boolean;
+    login: (data: LoginData) => Promise<void>;
+    register: (data: RegisterData) => Promise<void>;
+    logout: () => Promise<void>;
+    updateUser: (userData: Partial<User>) => void;
+}
+
+// Criar o contexto
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Hook para usar o contexto
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};
 
 interface AuthProviderProps {
     children: ReactNode;
 }
 
-export const AuthContext = createContext<AuthContextType | null>(null);
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const { showSuccess, showError } = useToast();
 
-    const isAuthenticated = !!user && !!token;
-
-    // Inicializar autenticação
     useEffect(() => {
-        initializeAuth();
+        loadStoredAuth();
     }, []);
 
-    const initializeAuth = async (): Promise<void> => {
+    const loadStoredAuth = async () => {
         try {
-            setIsLoading(true);
+            const [storedUser, storedToken] = await AsyncStorage.multiGet([
+                '@super_app:user',
+                '@super_app:token'
+            ]);
 
-            const savedToken = await storageService.getAuthToken();
-            const savedUserData = await storageService.getUserData();
-
-            if (savedToken && savedUserData) {
-                const userData = JSON.parse(savedUserData);
-                setToken(savedToken);
-                setUser(userData);
-
-                // Verificar se token ainda é válido
-                try {
-                    await authService.getProfile();
-                } catch (error) {
-                    // Token inválido, limpar dados
-                    await logout();
-                }
+            if (storedUser[1] && storedToken[1]) {
+                setUser(JSON.parse(storedUser[1]));
+                setToken(storedToken[1]);
             }
         } catch (error) {
-            console.error('Erro ao inicializar autenticação:', error);
-            await logout();
+            console.error('Erro ao carregar dados de autenticação:', error);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const login = async (credentials: LoginCredentials): Promise<void> => {
+    const login = async (data: LoginData) => {
         try {
             setIsLoading(true);
+            const response = await authService.login(data);
 
-            const authResponse = await authService.login(credentials);
+            await AsyncStorage.multiSet([
+                ['@super_app:user', JSON.stringify(response.user)],
+                ['@super_app:token', response.token],
+                ['@super_app:refresh_token', response.refreshToken],
+            ]);
 
-            // Salvar dados
-            await storageService.saveAuthToken(authResponse.token);
-            await storageService.saveUserData(JSON.stringify(authResponse.user));
-
-            setToken(authResponse.token);
-            setUser(authResponse.user);
-
-            showSuccess(MESSAGES.SUCCESS.LOGIN);
-        } catch (error: any) {
-            showError(error.message || MESSAGES.ERROR.INVALID_CREDENTIALS);
+            setUser(response.user);
+            setToken(response.token);
+        } catch (error) {
             throw error;
         } finally {
             setIsLoading(false);
         }
     };
 
-    const register = async (data: RegisterData): Promise<void> => {
+    const register = async (data: RegisterData) => {
         try {
             setIsLoading(true);
+            const response = await authService.register(data);
 
-            const authResponse = await authService.register(data);
+            await AsyncStorage.multiSet([
+                ['@super_app:user', JSON.stringify(response.user)],
+                ['@super_app:token', response.token],
+                ['@super_app:refresh_token', response.refreshToken],
+            ]);
 
-            // Salvar dados
-            await storageService.saveAuthToken(authResponse.token);
-            await storageService.saveUserData(JSON.stringify(authResponse.user));
-
-            setToken(authResponse.token);
-            setUser(authResponse.user);
-
-            showSuccess(MESSAGES.SUCCESS.REGISTER);
-        } catch (error: any) {
-            showError(error.message || MESSAGES.ERROR.GENERIC);
+            setUser(response.user);
+            setToken(response.token);
+        } catch (error) {
             throw error;
         } finally {
             setIsLoading(false);
         }
     };
 
-    const logout = async (): Promise<void> => {
+    const logout = async () => {
         try {
-            setIsLoading(true);
+            await authService.logout();
 
-            // Limpar dados locais
-            await storageService.clearAll();
+            await AsyncStorage.multiRemove([
+                '@super_app:user',
+                '@super_app:token',
+                '@super_app:refresh_token',
+            ]);
 
-            setToken(null);
             setUser(null);
-
-            showSuccess(MESSAGES.SUCCESS.LOGOUT);
+            setToken(null);
         } catch (error) {
             console.error('Erro no logout:', error);
-        } finally {
-            setIsLoading(false);
         }
     };
 
-    const refreshUser = async (): Promise<void> => {
-        try {
-            if (!token) return;
-
-            const userData = await authService.getProfile();
-            await storageService.saveUserData(JSON.stringify(userData));
-            setUser(userData);
-        } catch (error) {
-            console.error('Erro ao atualizar usuário:', error);
-            await logout();
+    const updateUser = (userData: Partial<User>) => {
+        if (user) {
+            const updatedUser = { ...user, ...userData };
+            setUser(updatedUser);
+            AsyncStorage.setItem('@super_app:user', JSON.stringify(updatedUser));
         }
     };
 
@@ -131,11 +127,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user,
         token,
         isLoading,
-        isAuthenticated,
+        isAuthenticated: !!user,
         login,
         register,
         logout,
-        refreshUser,
+        updateUser,
     };
 
     return (

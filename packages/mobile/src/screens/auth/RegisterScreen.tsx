@@ -11,6 +11,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Controller } from 'react-hook-form';
 import { AuthStackParamList, RegisterFormData } from '@/types';
+import type { RegisterData as ServiceRegisterData } from '@/services/authService';
 import { SafeContainer } from '@/components/SafeContainer';
 import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
@@ -40,7 +41,19 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
-      await register(data);
+      const payload: ServiceRegisterData = {
+        nome: data.nome,
+        email: data.email,
+        password: data.senha,
+        telefone: data.telefone || undefined,
+        tipoUsuario:
+          data.tipo === 'comprador'
+            ? 'buyer'
+            : data.tipo === 'prestador'
+            ? 'provider'
+            : 'advertiser',
+      };
+      await register(payload);
     } catch (error) {
       // Erro já tratado no contexto
     }

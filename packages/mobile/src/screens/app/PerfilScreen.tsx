@@ -80,9 +80,10 @@ export const PerfilScreen: React.FC = () => {
             <Text style={styles.userEmail}>{user?.email}</Text>
             <View style={styles.userTypeContainer}>
               <Text style={styles.userType}>
-                {user?.tipo === 'comprador' && 'Comprador'}
-                {user?.tipo === 'prestador' && 'Prestador de Serviço'}
-                {user?.tipo === 'anunciante' && 'Anunciante'}
+                {user?.tipoUsuario === 'buyer' && 'Comprador'}
+                {user?.tipoUsuario === 'provider' && 'Prestador de Serviço'}
+                {user?.tipoUsuario === 'advertiser' && 'Anunciante'}
+                {user?.tipoUsuario === 'admin' && 'Administrador'}
               </Text>
             </View>
           </View>
