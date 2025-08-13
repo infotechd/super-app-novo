@@ -1,30 +1,27 @@
+// src/navigation/RootNavigator.tsx
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { RootStackParamList } from '@/types';
-import { AuthNavigator } from './AuthNavigator';
-import { AppNavigator } from './AppNavigator';
-import { LoadingScreen } from '@/components/LoadingScreen';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
+import AuthNavigator from './AuthNavigator';
+import MainTabNavigator from './MainTabNavigator';
+import LoadingScreen from '../screens/LoadingScreen';
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator();
 
-export const RootNavigator: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+export default function RootNavigator() {
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return <LoadingScreen message="Carregando..." />;
+    return <LoadingScreen />;
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isAuthenticated ? (
-          <Stack.Screen name="App" component={AppNavigator} />
-        ) : (
-          <Stack.Screen name="Auth" component={AuthNavigator} />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {user ? (
+        <Stack.Screen name="Main" component={MainTabNavigator} />
+      ) : (
+        <Stack.Screen name="Auth" component={AuthNavigator} />
+      )}
+    </Stack.Navigator>
   );
-};
+}

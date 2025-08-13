@@ -6,7 +6,7 @@ import { OfertasScreen } from '@/screens/app/OfertasScreen';
 import { ServicosScreen } from '@/screens/app/ServicosScreen';
 import { PerfilScreen } from '@/screens/app/PerfilScreen';
 import { THEME_CONFIG } from '@/constants/config';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 

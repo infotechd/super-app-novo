@@ -3,7 +3,9 @@
   "compilerOptions": {
     "target": "ES2020",
     "lib": [
-      "ES2020"
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
     ],
     "allowJs": true,
     "skipLibCheck": true,
@@ -13,7 +15,7 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -21,31 +23,25 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ],
       "@/components/*": [
-        "src/components/*"
+        "./src/components/*"
       ],
       "@/screens/*": [
-        "src/screens/*"
+        "./src/screens/*"
       ],
       "@/services/*": [
-        "src/services/*"
+        "./src/services/*"
       ],
       "@/types/*": [
-        "src/types/*"
-      ],
-      "@/utils/*": [
-        "src/utils/*"
-      ],
-      "@/hooks/*": [
-        "src/hooks/*"
+        "./src/types/*"
       ],
       "@/context/*": [
-        "src/context/*"
+        "./src/context/*"
       ],
-      "@/constants/*": [
-        "src/constants/*"
+      "@/utils/*": [
+        "./src/utils/*"
       ]
     }
   },
@@ -54,6 +50,8 @@
     "**/*.tsx"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js"
   ]
 }

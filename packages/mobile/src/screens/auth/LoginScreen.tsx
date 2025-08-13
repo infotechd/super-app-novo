@@ -30,7 +30,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      await login(data);
+      await login({ email: data.email, password: data.senha });
     } catch (error) {
       // Erro já tratado no contexto
     }
