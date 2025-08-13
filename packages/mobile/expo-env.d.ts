@@ -1,1 +1,1 @@
-declare module '@expo/vector-icons';
+/// <reference types="expo/types" />
