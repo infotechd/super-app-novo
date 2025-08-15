@@ -1,202 +1,126 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
+import { Text, TextInput, Button, Card } from 'react-native-paper';
+import { useAuth } from '../../context/AuthContext';
+import { colors, spacing } from '../../styles/theme';
+import { AuthStackParamList } from '../../types/navigation';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Controller } from 'react-hook-form';
-import { AuthStackParamList, LoginFormData } from '@/types';
-import { SafeContainer } from '@/components/SafeContainer';
-import { Input } from '@/components/Input';
-import { Button } from '@/components/Button';
-import { useAuth } from '@/hooks/useAuth';
-import { useForm } from '@/hooks/useForm';
-import { useToast } from '@/hooks/useToast';
-import { loginSchema } from '@/utils/validation';
-import { THEME_CONFIG } from '@/constants/config';
-import { Ionicons } from '@expo/vector-icons';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
-export const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading } = useAuth();
-  const { showError } = useToast();
+const LoginScreen: React.FC<Props> = ({ navigation }) => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const { login } = useAuth();
 
-  const { control, handleSubmit, formState: { errors, isValid } } = useForm({
-    schema: loginSchema,
-    defaultValues: {
-      email: '',
-      senha: '',
-    },
-  });
+    const handleLogin = async () => {
+        if (!email || !password) {
+            Alert.alert('Erro', 'Preencha todos os campos');
+            return;
+        }
 
-  const onSubmit = async (data: LoginFormData) => {
-    try {
-      await login(data);
-    } catch (error) {
-      // Erro já tratado no contexto
-    }
-  };
+        try {
+            setIsLoading(true);
+            await login(email, password);
+        } catch (error: any) {
+            Alert.alert('Erro', error.response?.data?.message || 'Erro ao fazer login');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  return (
-    <SafeContainer>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={THEME_CONFIG.COLORS.TEXT} />
-          </TouchableOpacity>
+    return (
+        <View style={styles.container}>
+            <Card style={styles.card}>
+                <Card.Content>
+                    <Text variant="headlineMedium" style={styles.title}>
+                        Super App
+                    </Text>
+                    <Text variant="bodyMedium" style={styles.subtitle}>
+                        Faça login para continuar
+                    </Text>
 
-          <Text style={styles.title}>Entrar</Text>
-          <Text style={styles.subtitle}>
-            Entre com sua conta para continuar
-          </Text>
-        </View>
-
-        <View style={styles.form}>
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label="Email"
-                placeholder="Digite seu email"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={errors.email?.message}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                leftIcon={
-                  <Ionicons
-                    name="mail-outline"
-                    size={20}
-                    color={THEME_CONFIG.COLORS.TEXT_SECONDARY}
-                  />
-                }
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="senha"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label="Senha"
-                placeholder="Digite sua senha"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={errors.senha?.message}
-                secureTextEntry={!showPassword}
-                autoComplete="password"
-                leftIcon={
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={20}
-                    color={THEME_CONFIG.COLORS.TEXT_SECONDARY}
-                  />
-                }
-                rightIcon={
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Ionicons
-                      name={showPassword ? "eye-off-outline" : "eye-outline"}
-                      size={20}
-                      color={THEME_CONFIG.COLORS.TEXT_SECONDARY}
+                    <TextInput
+                        label="Email"
+                        value={email}
+                        onChangeText={setEmail}
+                        mode="outlined"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        style={styles.input}
                     />
-                  </TouchableOpacity>
-                }
-              />
-            )}
-          />
 
-          <TouchableOpacity
-            style={styles.forgotPassword}
-            onPress={() => navigation.navigate('ForgotPassword')}
-          >
-            <Text style={styles.forgotPasswordText}>
-              Esqueceu sua senha?
-            </Text>
-          </TouchableOpacity>
+                    <TextInput
+                        label="Senha"
+                        value={password}
+                        onChangeText={setPassword}
+                        mode="outlined"
+                        secureTextEntry
+                        style={styles.input}
+                    />
 
-          <Button
-            title="Entrar"
-            onPress={handleSubmit(onSubmit)}
-            loading={isLoading}
-            disabled={!isValid}
-            fullWidth
-            style={styles.loginButton}
-          />
+                    <Button
+                        mode="contained"
+                        onPress={handleLogin}
+                        loading={isLoading}
+                        disabled={isLoading}
+                        style={styles.button}
+                    >
+                        Entrar
+                    </Button>
+
+                    <Button
+                        mode="text"
+                        onPress={() => navigation.navigate('Register')}
+                        style={styles.linkButton}
+                    >
+                        Não tem conta? Cadastre-se
+                    </Button>
+
+                    <Button
+                        mode="text"
+                        onPress={() => navigation.navigate('ForgotPassword')}
+                        style={styles.linkButton}
+                    >
+                        Esqueci minha senha
+                    </Button>
+                </Card.Content>
+            </Card>
         </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Não tem uma conta?{' '}
-            <Text
-              style={styles.footerLink}
-              onPress={() => navigation.navigate('Register')}
-            >
-              Criar conta
-            </Text>
-          </Text>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeContainer>
-  );
+    );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: THEME_CONFIG.SPACING.LG,
-  },
-  header: {
-    paddingTop: THEME_CONFIG.SPACING.LG,
-    paddingBottom: THEME_CONFIG.SPACING.XL,
-  },
-  backButton: {
-    marginBottom: THEME_CONFIG.SPACING.LG,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: THEME_CONFIG.COLORS.TEXT,
-    marginBottom: THEME_CONFIG.SPACING.SM,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: THEME_CONFIG.COLORS.TEXT_SECONDARY,
-  },
-  form: {
-    flex: 1,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: THEME_CONFIG.SPACING.XL,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    color: THEME_CONFIG.COLORS.PRIMARY,
-    fontWeight: '500',
-  },
-  loginButton: {
-    marginBottom: THEME_CONFIG.SPACING.LG,
-  },
-  footer: {
-    paddingBottom: THEME_CONFIG.SPACING.LG,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 14,
-    color: THEME_CONFIG.COLORS.TEXT_SECONDARY,
-  },
-  footerLink: {
-    color: THEME_CONFIG.COLORS.PRIMARY,
-    fontWeight: '500',
-  },
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+        padding: spacing.md,
+        backgroundColor: colors.background,
+    },
+    card: {
+        padding: spacing.md,
+    },
+    title: {
+        textAlign: 'center',
+        marginBottom: spacing.sm,
+        color: colors.primary,
+    },
+    subtitle: {
+        textAlign: 'center',
+        marginBottom: spacing.lg,
+        color: colors.textSecondary,
+    },
+    input: {
+        marginBottom: spacing.md,
+    },
+    button: {
+        marginTop: spacing.md,
+        marginBottom: spacing.sm,
+    },
+    linkButton: {
+        marginVertical: spacing.xs,
+    },
 });
+
+export default LoginScreen;

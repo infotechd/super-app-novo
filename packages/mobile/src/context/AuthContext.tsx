@@ -1,129 +1,86 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { AuthContextType, User, LoginCredentials, RegisterData } from '@/types';
-import { authService } from '@/services/authService';
-import { storageService } from '@/utils/storage';
-import { useToast } from '@/hooks/useToast';
-import { MESSAGES } from '@/constants';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authService } from '../services/authService';
+import { User, AuthContextType, RegisterData, LoginData } from '../types/user';
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
     children: ReactNode;
 }
 
-export const AuthContext = createContext<AuthContextType | null>(null);
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const { showSuccess, showError } = useToast();
 
     const isAuthenticated = !!user && !!token;
 
-    // Inicializar autenticação
     useEffect(() => {
-        initializeAuth();
+        loadStoredAuth();
     }, []);
 
-    const initializeAuth = async (): Promise<void> => {
+    const loadStoredAuth = async () => {
         try {
-            setIsLoading(true);
+            const [storedToken, storedUser] = await Promise.all([
+                AsyncStorage.getItem('token'),
+                AsyncStorage.getItem('user'),
+            ]);
 
-            const savedToken = await storageService.getAuthToken();
-            const savedUserData = await storageService.getUserData();
-
-            if (savedToken && savedUserData) {
-                const userData = JSON.parse(savedUserData);
-                setToken(savedToken);
-                setUser(userData);
-
-                // Verificar se token ainda é válido
-                try {
-                    await authService.getProfile();
-                } catch (error) {
-                    // Token inválido, limpar dados
-                    await logout();
-                }
+            if (storedToken && storedUser) {
+                setToken(storedToken);
+                setUser(JSON.parse(storedUser));
             }
         } catch (error) {
-            console.error('Erro ao inicializar autenticação:', error);
-            await logout();
+            console.error('Erro ao carregar autenticação:', error);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const login = async (credentials: LoginCredentials): Promise<void> => {
+    const login = async (email: string, password: string) => {
         try {
             setIsLoading(true);
+            const response = await authService.login({ email, password });
 
-            const authResponse = await authService.login(credentials);
+            await AsyncStorage.setItem('token', response.token);
+            await AsyncStorage.setItem('user', JSON.stringify(response.user));
 
-            // Salvar dados
-            await storageService.saveAuthToken(authResponse.token);
-            await storageService.saveUserData(JSON.stringify(authResponse.user));
-
-            setToken(authResponse.token);
-            setUser(authResponse.user);
-
-            showSuccess(MESSAGES.SUCCESS.LOGIN);
-        } catch (error: any) {
-            showError(error.message || MESSAGES.ERROR.INVALID_CREDENTIALS);
+            setToken(response.token);
+            setUser(response.user);
+        } catch (error) {
             throw error;
         } finally {
             setIsLoading(false);
         }
     };
 
-    const register = async (data: RegisterData): Promise<void> => {
+    const register = async (data: RegisterData) => {
         try {
             setIsLoading(true);
+            const response = await authService.register(data);
 
-            const authResponse = await authService.register(data);
+            await AsyncStorage.setItem('token', response.token);
+            await AsyncStorage.setItem('user', JSON.stringify(response.user));
 
-            // Salvar dados
-            await storageService.saveAuthToken(authResponse.token);
-            await storageService.saveUserData(JSON.stringify(authResponse.user));
-
-            setToken(authResponse.token);
-            setUser(authResponse.user);
-
-            showSuccess(MESSAGES.SUCCESS.REGISTER);
-        } catch (error: any) {
-            showError(error.message || MESSAGES.ERROR.GENERIC);
+            setToken(response.token);
+            setUser(response.user);
+        } catch (error) {
             throw error;
         } finally {
             setIsLoading(false);
         }
     };
 
-    const logout = async (): Promise<void> => {
+    const logout = async () => {
         try {
-            setIsLoading(true);
-
-            // Limpar dados locais
-            await storageService.clearAll();
-
-            setToken(null);
-            setUser(null);
-
-            showSuccess(MESSAGES.SUCCESS.LOGOUT);
+            await authService.logout();
         } catch (error) {
             console.error('Erro no logout:', error);
         } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const refreshUser = async (): Promise<void> => {
-        try {
-            if (!token) return;
-
-            const userData = await authService.getProfile();
-            await storageService.saveUserData(JSON.stringify(userData));
-            setUser(userData);
-        } catch (error) {
-            console.error('Erro ao atualizar usuário:', error);
-            await logout();
+            await AsyncStorage.multiRemove(['token', 'user']);
+            setToken(null);
+            setUser(null);
         }
     };
 
@@ -135,7 +92,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         login,
         register,
         logout,
-        refreshUser,
     };
 
     return (
@@ -144,3 +100,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         </AuthContext.Provider>
     );
 };
+
+export const useAuth = (): AuthContextType => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth deve ser usado dentro de AuthProvider');
+    }
+    return context;
+};
+
+export { AuthContext };
+export default AuthContext;

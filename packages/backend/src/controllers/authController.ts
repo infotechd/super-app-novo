@@ -2,7 +2,7 @@ import { Response } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
 import config from '../config';
-import logger from '../config/logger';
+import logger from '../utils/logger';
 import { AuthRequest } from '../middlewares/auth';
 import { RegisterInput, LoginInput } from '../validation/authValidation';
 
@@ -137,7 +137,23 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
 // Perfil do usuario
 export const getProfile = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const user = req.user!;
+        const authUser = req.user;
+        if (!authUser?.id) {
+            res.status(401).json({
+                success: false,
+                message: 'Não autenticado'
+            });
+            return;
+        }
+
+        const user = await User.findById(authUser.id);
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'Usuário não encontrado'
+            });
+            return;
+        }
 
         res.json({
             success: true,

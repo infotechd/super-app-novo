@@ -1,39 +1,50 @@
 import mongoose from 'mongoose';
-import config from './index';
-import logger from './logger';
+import config from '.';
+import logger from '../utils/logger';
+
+// Configurar Mongoose
+mongoose.set('strictQuery', true);
 
 const connectDB = async (): Promise<void> => {
-    try {
-        logger.info('🔄 Conectando ao MongoDB...', { uri: config.MONGODB_URI });
+  if (config.SKIP_DB) {
+    logger.warn('SKIP_DB habilitado: iniciando servidor sem conexão ao MongoDB');
+    return;
+  }
 
-        // Opcional: se quiser desativar buffer de operações antes da conexão
-        // mongoose.set('bufferCommands', false);
-        // mongoose.set('bufferTimeoutMS', 0);
+  const uri = config.MONGO_URI;
 
-        await mongoose.connect(config.MONGODB_URI, {
-            maxPoolSize: 10,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000
-            // bufferMaxEntries foi removido no driver v4 e não é suportado
-        });
+  try {
+    await mongoose.connect(uri, {
+      // useNewUrlParser/useUnifiedTopology são default em mongoose >= 6
+      // deixando objeto de opções vazio para compatibilidade
+    } as any);
 
-        logger.info('✅ MongoDB conectado com sucesso!', {
-            database: mongoose.connection.name
-        });
+    const connection = mongoose.connection;
 
-        // Event listeners
-        mongoose.connection.on('error', (error) => {
-            logger.error('❌ Erro na conexão MongoDB:', error);
-        });
+    connection.on('connected', () => {
+      logger.info('Conectado ao MongoDB com sucesso');
+    });
 
-        mongoose.connection.on('disconnected', () => {
-            logger.warn('⚠️ Desconectado do MongoDB');
-        });
+    connection.on('error', (err) => {
+      logger.error('Erro na conexão com MongoDB:', err);
+    });
 
-    } catch (error) {
-        logger.error('❌ Erro ao conectar MongoDB:', error);
-        throw error;
+    connection.on('disconnected', () => {
+      logger.warn('Desconectado do MongoDB');
+    });
+
+  } catch (error) {
+    logger.error('Falha ao conectar ao MongoDB:', error);
+    // Em produção, falhar o boot; em dev, apenas warn
+    if (config.IS_PROD) {
+      throw error;
     }
+  }
+};
+
+export const getDatabase = (): any => {
+  // Retorna a instância atual do banco para uso com GridFSBucket
+  return (mongoose.connection as any).db;
 };
 
 export default connectDB;

@@ -11,13 +11,15 @@ router.use(generalLimiter);
 // Rotas da API
 router.use('/auth', authRoutes);
 
-// Rota de health check
+// Rota de health check (formato ApiResponse)
 router.get('/health', (req: Request, res: Response) => {
     res.json({
         success: true,
         message: 'Super App API funcionando!',
-        timestamp: new Date().toISOString(),
-        version: '1.0.0'
+        data: {
+            timestamp: new Date().toISOString(),
+            version: '1.0.0'
+        }
     });
 });
 
